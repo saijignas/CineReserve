@@ -1,4 +1,5 @@
 # Movie Reservation System
+![CI](https://github.com/saijignas/CineReserve/actions/workflows/ci.yml/badge.svg)
 
 This is a robust implementation of a movie theater booking system, specifically addressing critical challenges such as high-concurrency seat booking and data integrity. It is designed with a clean architecture to ensure scalability, security, and maintainability.
 
