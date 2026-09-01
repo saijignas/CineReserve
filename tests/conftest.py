@@ -35,15 +35,28 @@ def db():
 
 @pytest.fixture(scope="function")
 def client(db):
-    """Create a test client with overridden database dependency."""
+    """Create a test client with overridden database dependency.
+
+    Each call gets its own Session (mirroring app/db/session.py's real
+    get_db), not the single `db` fixture object -- a shared Session
+    handed to every request is not thread-safe, and the concurrent-
+    request race-condition test below spins up multiple threads that
+    hit this dependency at the same time. Sharing one session there
+    caused one thread's rollback to invalidate the transaction for every
+    other concurrently-executing thread ("This session is in 'inactive'
+    state") -- a bug in the test harness, not in the app's own locking.
+    The `db` fixture is still depended on for its create_all/drop_all
+    setup and teardown.
+    """
     def override_get_db():
+        session = TestingSessionLocal()
         try:
-            yield db
+            yield session
         finally:
-            pass
-    
+            session.close()
+
     app.dependency_overrides[get_db] = override_get_db
-    
+
     with TestClient(app) as test_client:
         yield test_client
     
