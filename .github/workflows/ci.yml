@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: movieuser
+          POSTGRES_PASSWORD: moviepass123
+          POSTGRES_DB: movie_reservation_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U movieuser -d movie_reservation_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      TEST_DATABASE_URL: postgresql://movieuser:moviepass123@localhost:5432/movie_reservation_test
+      DATABASE_URL: postgresql://movieuser:moviepass123@localhost:5432/movie_reservation_test
+      REDIS_URL: redis://localhost:6379/0
+      SECRET_KEY: ci-test-secret-key-min-32-characters-long
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unit and integration tests
+        run: pytest tests/unit tests/integration -v
